@@ -27,7 +27,7 @@ namespace Rsc.HttpClient.Tests
     /// This class isn't a unit test, but rather an alternative to haveing a console application
     /// to demonstrate using the library.
     /// </summary>
-    class CircuitBreakerDemoClient
+    class CircuitBreaker_Example
     {
         private IHttpClient _googleHttpClient;
         private ICircuitBreaker _googleCircuitBreaker;
@@ -64,7 +64,7 @@ namespace Rsc.HttpClient.Tests
         {
             if (_googleHttpClient.AllowRequest())
             {
-                var something = await _googleHttpClient.GetStringAsync("http://www.google.com");
+                var something = await _googleHttpClient.GetStringAsync("http://www.google.com", new HttpRequestOptions {Timeout = TimeSpan.FromMinutes(2)});
                 Assert.IsNotEmpty(something);
             }
         }

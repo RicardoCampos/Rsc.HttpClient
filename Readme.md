@@ -52,6 +52,7 @@ All of the components are referenced by interface, so you should be able to exte
 * **CircuitBreaker** - a configurable, threadsafe implementation of the circuit breaker pattern.
 * **HttpClientRegister** - a threadsafe service register, promoting reuse of the client objects.
 * **IRetryStrategy<T>** - an interface for you to implement your own strategies. You could be specific with certain Exception types, add in reporting and so on.
+* **HttpRequestOptions** - A wrapper class so you can supply additional options to your request- a function to add headers, an overriding retry strategy or a timeout.
 
 ###Rules of thumb
 
@@ -117,8 +118,35 @@ Here we know that we want a different retry strategy than the default for this s
     var myService=register.GetClient("MyService");
     if (myService.AllowRequest())
     {
-        var tempStrategy=new NoRetry<string>(); 
-        var webPage=await myService.GetStringAsync("http://www.myservice.com",tempStrategy);
+        var tempStrategy=new NoRetry(); 
+        var options=new HttpRequestOptions
+        {
+            RetryStrategy = tempStrategy
+        };
+        var webPage=await myService.GetStringAsync("http://www.myservice.com",options);
+        //Do something with the web page
+    }
+    else
+    {
+        Debug.WriteLine("Oh no! The service isn't allowing requests so I won't even try to fetch the page!");
+    }
+```
+
+
+####Specifying a timeout per request
+
+Here we know that we want a different timeout than the default for this single call. Typically each sercice would have an SLA, but you might expect certain calls to take a lot longer.
+
+```csharp
+    var myService=register.GetClient("MyService");
+    if (myService.AllowRequest())
+    {
+        var tempStrategy=new NoRetry(); 
+        var options=new HttpRequestOptions
+        {
+            Timeout = TimeSpan.FromSeconds(20)
+        };
+        var webPage=await myService.GetStringAsync("http://www.myservice.com",options);
         //Do something with the web page
     }
     else

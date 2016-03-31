@@ -1,4 +1,4 @@
-﻿/**
+/**
   Copyright 2016 Ricardo Campos
 
    Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,15 +15,25 @@
    **/
 
 using System;
+using System.Threading.Tasks;
+using NUnit.Framework;
+using Rsc.HttpClient.Retry;
 
-namespace Rsc.HttpClient.Util
+namespace Rsc.HttpClient.Tests
 {
-    public sealed class TimeService : ITimeService
+    class Specifying_A_Per_Request_Retry_Strategy_Example
     {
-        public DateTime GetCurrentUtcDateTime()
+        [Test]
+        public async Task Specify_Strategy()
         {
-            return DateTime.UtcNow;
+            var myService=new RetryClient(TimeSpan.FromSeconds(5), 3);
+            var tempStrategy = new NoRetry();
+            var options=new HttpRequestOptions
+            {
+                RetryStrategy = tempStrategy
+            };
+            var result = await myService.GetStringAsync("http://www.google.com", options);
+            Assert.IsNotNullOrEmpty(result);
         }
     }
-
 }

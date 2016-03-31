@@ -20,7 +20,7 @@ using Rsc.HttpClient.Util;
 
 namespace Rsc.HttpClient.Tests
 {
-    class HttpClientRegisterDemo
+    class HttpClientRegister_Example
     {
 
         [Test]
@@ -42,5 +42,6 @@ namespace Rsc.HttpClient.Tests
             Assert.That(register.GetClient("Bing"), Is.SameAs(service2));
             Assert.That(register.GetClient("DuckDuckGo"), Is.SameAs(service3));
         }
+
     }
 }

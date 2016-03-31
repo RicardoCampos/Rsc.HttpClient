@@ -55,6 +55,8 @@
     <Compile Include="ExponentialBackoffRetryClient.cs" />
     <Compile Include="FixedBackoffRetryClient.cs" />
     <Compile Include="HttpClientRegister.cs" />
+    <Compile Include="HttpRequestOptions.cs" />
+    <Compile Include="Util\HttpUtilities.cs" />
     <Compile Include="IHttpClientRegister.cs" />
     <Compile Include="NoRetryClient.cs" />
     <Compile Include="RetryClient.cs" />

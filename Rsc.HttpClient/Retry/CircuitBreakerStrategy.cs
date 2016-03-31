@@ -39,9 +39,9 @@ namespace Rsc.HttpClient.Retry
             _circuitBreaker = circuitBreaker;
         }
 
-        public async Task<T> Execute<T>(Func<Task<T>> taskToExecute)
+        public Task<T> Execute<T>(Func<Task<T>> taskToExecute)
         {
-            return await DoExecute(taskToExecute);
+            return DoExecute(taskToExecute);
         }
 
         private async Task<T> DoExecute<T>(Func<Task<T>> taskToExecute)

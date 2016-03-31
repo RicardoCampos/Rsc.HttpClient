@@ -21,6 +21,7 @@ using System.Net.Http.Headers;
 using System.Threading;
 using System.Threading.Tasks;
 using Rsc.HttpClient.Retry;
+using Rsc.HttpClient.Util;
 
 namespace Rsc.HttpClient
 {
@@ -102,210 +103,255 @@ namespace Rsc.HttpClient
 
         #region GET
 
-        public Task<string> GetStringAsync(string requestUri, IRetryStrategy retryStrategy = null)
+        public Task<string> GetStringAsync(string requestUri, HttpRequestOptions requestOptions = null)
         {
-            return GetStringAsync(new Uri(requestUri),retryStrategy);
+            return GetStringAsync(new Uri(requestUri),requestOptions);
         }
 
-        public async Task<string> GetStringAsync(Uri requestUri, IRetryStrategy retryStrategy = null)
+        public Task<string> GetStringAsync(Uri requestUri, HttpRequestOptions requestOptions = null)
         {
-            if (retryStrategy == null)
+            return GetContentAsync(requestUri, HttpCompletionOption.ResponseContentRead, string.Empty, 
+                content => content.ReadAsStringAsync(),requestOptions);
+        }
+
+        public Task<byte[]> GetByteArrayAsync(string requestUri, HttpRequestOptions requestOptions =null )
+        {
+            return GetByteArrayAsync(new Uri(requestUri),requestOptions);
+        }
+
+        public Task<byte[]> GetByteArrayAsync(Uri requestUri, HttpRequestOptions requestOptions = null)
+        {
+            return GetContentAsync(requestUri, HttpCompletionOption.ResponseContentRead, HttpUtilities.EmptyByteArray, 
+                content => content.ReadAsByteArrayAsync(),requestOptions);
+        }
+
+        public Task<Stream> GetStreamAsync(string requestUri, HttpRequestOptions requestOptions =null )
+        {
+            return GetStreamAsync(new Uri(requestUri),requestOptions);
+        }
+
+        public Task<Stream> GetStreamAsync(Uri requestUri, HttpRequestOptions requestOptions = null)
+        {
+            return GetContentAsync(requestUri, HttpCompletionOption.ResponseHeadersRead, Stream.Null, content =>
             {
-                return await RetryStrategy.Execute(() => _client.GetStringAsync(requestUri));
-            }
-            return await retryStrategy.Execute(() => _client.GetStringAsync(requestUri));
+                if (content == null) throw new ArgumentNullException(nameof(content));
+                return content.ReadAsStreamAsync();
+            },requestOptions);
         }
 
-        public Task<byte[]> GetByteArrayAsync(string requestUri, IRetryStrategy retryStrategy=null )
-        {
-            return GetByteArrayAsync(new Uri(requestUri),retryStrategy);
-        }
 
-        public async Task<byte[]> GetByteArrayAsync(Uri requestUri,IRetryStrategy retryStrategy= null)
+        private Task<T> GetContentAsync<T>(Uri requestUri, HttpCompletionOption completionOption, T defaultValue,
+            Func<HttpContent, Task<T>> readAs,HttpRequestOptions requestOptions=null)
         {
-            if (retryStrategy == null)
+            var tcs = new TaskCompletionSource<T>();
+            
+            GetAsync(requestUri, completionOption,requestOptions).ContinueWithStandard(requestTask =>
             {
-                return await RetryStrategy.Execute(() => _client.GetByteArrayAsync(requestUri));
-            }
-            return await retryStrategy.Execute(() => _client.GetByteArrayAsync(requestUri));
+                if (HandleRequestFaultsAndCancelation<T>(requestTask, tcs))
+                    return;
+                var result = requestTask.Result;
+                if (result.Content == null)
+                {
+                    tcs.TrySetResult(defaultValue);
+                }
+                else
+                {
+                    try
+                    {
+                        HttpUtilities.ContinueWithStandard(readAs(result.Content), contentTask =>
+                        {
+                            if (HttpUtilities.HandleFaultsAndCancelation(contentTask, tcs)) return;
+                            tcs.TrySetResult(contentTask.Result);
+                        });
+                    }
+                    catch (Exception ex)
+                    {
+                        tcs.TrySetException(ex);
+                    }
+                }
+            });
+            return tcs.Task;
         }
 
-        public Task<Stream> GetStreamAsync(string requestUri, IRetryStrategy retryStrategy=null )
+        private static bool HandleRequestFaultsAndCancelation<T>(Task<HttpResponseMessage> task, TaskCompletionSource<T> tcs)
         {
-            return GetStreamAsync(new Uri(requestUri),retryStrategy);
+            if (HttpUtilities.HandleFaultsAndCancelation(task, tcs)) return true;
+            var result = task.Result;
+            if (result.IsSuccessStatusCode) return false;
+            result.Content?.Dispose();
+            tcs.TrySetException(new HttpRequestException($"Status Code: {result.StatusCode} Reason: {result.ReasonPhrase}"));
+            return true;
+        }    
+
+        #region HttpResponseMessage Gets
+
+        public Task<HttpResponseMessage> GetAsync(string requestUri, HttpRequestOptions requestOptions =null)
+        {
+            return GetAsync(new Uri(requestUri), requestOptions);
         }
 
-        public async Task<Stream> GetStreamAsync(Uri requestUri, IRetryStrategy retryStrategy = null)
+        public Task<HttpResponseMessage> GetAsync(Uri requestUri, HttpRequestOptions requestOptions = null)
         {
-            if (retryStrategy == null)
-            {
-                return await RetryStrategy.Execute(() => _client.GetStreamAsync(requestUri));
-            }
-            return await retryStrategy.Execute(() => _client.GetStreamAsync(requestUri));
+            return GetAsync(requestUri, HttpCompletionOption.ResponseContentRead, CancellationToken.None, requestOptions);
         }
 
-        public Task<HttpResponseMessage> GetAsync(string requestUri,IRetryStrategy retryStrategy=null)
+        public Task<HttpResponseMessage> GetAsync(string requestUri, HttpCompletionOption completionOption, HttpRequestOptions requestOptions = null)
         {
-            return GetAsync(new Uri(requestUri), retryStrategy);
+            return GetAsync(new Uri(requestUri), completionOption, requestOptions);
         }
 
-        public Task<HttpResponseMessage> GetAsync(Uri requestUri, IRetryStrategy retryStrategy = null)
+        public Task<HttpResponseMessage> GetAsync(Uri requestUri, HttpCompletionOption completionOption, HttpRequestOptions requestOptions = null)
         {
-            return GetAsync(requestUri, HttpCompletionOption.ResponseContentRead, new CancellationToken(), retryStrategy);
+            return GetAsync(requestUri,completionOption,CancellationToken.None, requestOptions);
         }
 
-        public Task<HttpResponseMessage> GetAsync(string requestUri, HttpCompletionOption completionOption, IRetryStrategy retryStrategy = null)
+        public Task<HttpResponseMessage> GetAsync(string requestUri, CancellationToken cancellationToken, HttpRequestOptions requestOptions = null)
         {
-            return GetAsync(new Uri(requestUri), completionOption, retryStrategy);
+            return GetAsync(new Uri(requestUri), cancellationToken, requestOptions);
         }
 
-        public Task<HttpResponseMessage> GetAsync(Uri requestUri, HttpCompletionOption completionOption, IRetryStrategy retryStrategy = null)
+        public Task<HttpResponseMessage> GetAsync(Uri requestUri, CancellationToken cancellationToken, HttpRequestOptions requestOptions = null)
         {
-            return GetAsync(requestUri,completionOption,new CancellationToken(), retryStrategy);
+            return GetAsync(requestUri,HttpCompletionOption.ResponseContentRead, cancellationToken, requestOptions);
         }
 
-        public Task<HttpResponseMessage> GetAsync(string requestUri, CancellationToken cancellationToken, IRetryStrategy retryStrategy = null)
+        public Task<HttpResponseMessage> GetAsync(string requestUri, HttpCompletionOption completionOption, CancellationToken cancellationToken, HttpRequestOptions requestOptions = null)
         {
-            return GetAsync(new Uri(requestUri), cancellationToken, retryStrategy);
+            return GetAsync(new Uri(requestUri), completionOption, cancellationToken,requestOptions);
         }
 
-        public Task<HttpResponseMessage> GetAsync(Uri requestUri, CancellationToken cancellationToken, IRetryStrategy retryStrategy = null)
+        public Task<HttpResponseMessage> GetAsync(Uri requestUri, HttpCompletionOption completionOption, CancellationToken cancellationToken, HttpRequestOptions requestOptions = null)
         {
-            return GetAsync(requestUri,HttpCompletionOption.ResponseContentRead, cancellationToken, retryStrategy);
+            return SendAsync(new HttpRequestMessage(HttpMethod.Get, requestUri), completionOption, cancellationToken,requestOptions);
         }
-
-        public Task<HttpResponseMessage> GetAsync(string requestUri, HttpCompletionOption completionOption, CancellationToken cancellationToken, IRetryStrategy retryStrategy = null)
-        {
-            return GetAsync(new Uri(requestUri), completionOption, cancellationToken,retryStrategy);
-        }
-
-        public async Task<HttpResponseMessage> GetAsync(Uri requestUri, HttpCompletionOption completionOption, CancellationToken cancellationToken, IRetryStrategy retryStrategy = null)
-        {
-            if (retryStrategy == null)
-            {
-                return
-                    await
-                        RetryStrategy.Execute(
-                            () => _client.GetAsync(requestUri, completionOption, cancellationToken));
-            }
-            return
-                await
-                    retryStrategy.Execute(
-                        () => _client.GetAsync(requestUri, completionOption, cancellationToken));
-        }
+        #endregion
+        
         #endregion
 
         #region POST
-        public Task<HttpResponseMessage> PostAsync(string requestUri, HttpContent content, IRetryStrategy retryStrategy = null)
+        public Task<HttpResponseMessage> PostAsync(string requestUri, HttpContent content, HttpRequestOptions requestOptions = null)
         {
-            return PostAsync(new Uri(requestUri), content,retryStrategy);
+            return PostAsync(new Uri(requestUri), content,requestOptions);
         }
 
-        public Task<HttpResponseMessage> PostAsync(Uri requestUri, HttpContent content, IRetryStrategy retryStrategy = null)
+        public Task<HttpResponseMessage> PostAsync(Uri requestUri, HttpContent content, HttpRequestOptions requestOptions = null)
         {
-            return PostAsync(requestUri, content, new CancellationToken(),retryStrategy);
+            return PostAsync(requestUri, content, CancellationToken.None,requestOptions);
 
         }
 
-        public Task<HttpResponseMessage> PostAsync(string requestUri, HttpContent content, CancellationToken cancellationToken, IRetryStrategy retryStrategy = null)
+        public Task<HttpResponseMessage> PostAsync(string requestUri, HttpContent content, CancellationToken cancellationToken, HttpRequestOptions requestOptions = null)
         {
-            return PostAsync(new Uri(requestUri), content, cancellationToken,retryStrategy);
+            return PostAsync(new Uri(requestUri), content, cancellationToken,requestOptions);
         }
 
-        public async Task<HttpResponseMessage> PostAsync(Uri requestUri, HttpContent content, CancellationToken cancellationToken, IRetryStrategy retryStrategy = null)
+        public Task<HttpResponseMessage> PostAsync(Uri requestUri, HttpContent content, CancellationToken cancellationToken, HttpRequestOptions requestOptions = null)
         {
-            if (retryStrategy == null)
+            return SendAsync(new HttpRequestMessage(HttpMethod.Post, requestUri)
             {
-                return
-                    await
-                        RetryStrategy.Execute(
-                            () => _client.PostAsync(requestUri, content, cancellationToken));
-            }
-            return
-               await
-                   retryStrategy.Execute(
-                       () => _client.PostAsync(requestUri, content, cancellationToken));
+                Content = content
+            }, 
+            cancellationToken,
+            requestOptions);
         }
         #endregion
 
         #region PUT
-        public Task<HttpResponseMessage> PutAsync(string requestUri, HttpContent content, IRetryStrategy retryStrategy = null)
+        public Task<HttpResponseMessage> PutAsync(string requestUri, HttpContent content, HttpRequestOptions requestOptions = null)
         {
-            return PutAsync(new Uri(requestUri), content,retryStrategy);
+            return PutAsync(new Uri(requestUri), content,requestOptions);
         }
 
-        public Task<HttpResponseMessage> PutAsync(Uri requestUri, HttpContent content, IRetryStrategy retryStrategy = null)
+        public Task<HttpResponseMessage> PutAsync(Uri requestUri, HttpContent content, HttpRequestOptions requestOptions = null)
         {
-            return PutAsync(requestUri,content, new CancellationToken(),retryStrategy);
+            return PutAsync(requestUri,content, CancellationToken.None,requestOptions);
         }
 
-        public Task<HttpResponseMessage> PutAsync(string requestUri, HttpContent content, CancellationToken cancellationToken, IRetryStrategy retryStrategy = null)
+        public Task<HttpResponseMessage> PutAsync(string requestUri, HttpContent content, CancellationToken cancellationToken, HttpRequestOptions requestOptions = null)
         {
-            return PutAsync(new Uri(requestUri), content, cancellationToken,retryStrategy);
+            return PutAsync(new Uri(requestUri), content, cancellationToken,requestOptions);
         }
 
-        public async Task<HttpResponseMessage> PutAsync(Uri requestUri, HttpContent content, CancellationToken cancellationToken, IRetryStrategy retryStrategy = null)
+        public async Task<HttpResponseMessage> PutAsync(Uri requestUri, HttpContent content, CancellationToken cancellationToken, HttpRequestOptions requestOptions = null)
         {
-            if (retryStrategy == null)
+            return await SendAsync(new HttpRequestMessage(HttpMethod.Put, requestUri)
             {
-                return
-                    await
-                        RetryStrategy.Execute(
-                            () => _client.PutAsync(requestUri, content, cancellationToken));
-            }
-            return await retryStrategy.Execute(() => _client.PutAsync(requestUri, content, cancellationToken));
+                Content = content
+            }, cancellationToken);
         }
         #endregion
 
         #region DELETE
-        public Task<HttpResponseMessage> DeleteAsync(string requestUri, IRetryStrategy retryStrategy = null)
+        public Task<HttpResponseMessage> DeleteAsync(string requestUri, HttpRequestOptions requestOptions = null)
         {
-            return DeleteAsync(new Uri(requestUri),retryStrategy);
+            return DeleteAsync(new Uri(requestUri),requestOptions);
         }
 
-        public Task<HttpResponseMessage> DeleteAsync(Uri requestUri, IRetryStrategy retryStrategy = null)
+        public Task<HttpResponseMessage> DeleteAsync(Uri requestUri, HttpRequestOptions requestOptions = null)
         {
-            return DeleteAsync(requestUri, new CancellationToken(),retryStrategy);
+            return DeleteAsync(requestUri, CancellationToken.None,requestOptions);
         }
 
-        public Task<HttpResponseMessage> DeleteAsync(string requestUri, CancellationToken cancellationToken, IRetryStrategy retryStrategy = null)
+        public Task<HttpResponseMessage> DeleteAsync(string requestUri, CancellationToken cancellationToken, HttpRequestOptions requestOptions = null)
         {
-            return DeleteAsync(new Uri(requestUri), cancellationToken,retryStrategy);
+            return DeleteAsync(new Uri(requestUri), cancellationToken,requestOptions);
         }
 
-        public async Task<HttpResponseMessage> DeleteAsync(Uri requestUri, CancellationToken cancellationToken, IRetryStrategy retryStrategy = null)
+        public Task<HttpResponseMessage> DeleteAsync(Uri requestUri, CancellationToken cancellationToken, HttpRequestOptions requestOptions = null)
         {
-            if (retryStrategy == null)
-            {
-                return await RetryStrategy.Execute(() => _client.DeleteAsync(requestUri, cancellationToken));
-            }
-            return await retryStrategy.Execute(() => _client.DeleteAsync(requestUri, cancellationToken));
+            return SendAsync(new HttpRequestMessage(HttpMethod.Delete, requestUri), cancellationToken,requestOptions);
         }
         #endregion
 
         #region Send
-        public Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, IRetryStrategy retryStrategy=null )
+        public Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, HttpRequestOptions requestOptions =null )
         {
-            return SendAsync(request, new CancellationToken(),retryStrategy);
+            return SendAsync(request, CancellationToken.None,requestOptions);
         }
 
-        public Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken, IRetryStrategy retryStrategy = null)
+        public Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken, HttpRequestOptions requestOptions = null)
         {
-            return SendAsync(request,HttpCompletionOption.ResponseContentRead ,cancellationToken,retryStrategy);
+            return SendAsync(request,HttpCompletionOption.ResponseContentRead ,cancellationToken,requestOptions);
         }
 
-        public Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, HttpCompletionOption completionOption, IRetryStrategy retryStrategy = null)
+        public Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, HttpCompletionOption completionOption, HttpRequestOptions requestOptions = null)
         {
-            return SendAsync(request, completionOption, new CancellationToken(),retryStrategy);
+            return SendAsync(request, completionOption, CancellationToken.None,requestOptions);
         }
 
-        public async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, HttpCompletionOption completionOption, CancellationToken cancellationToken, IRetryStrategy retryStrategy = null)
+
+        public Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, HttpCompletionOption completionOption, CancellationToken cancellationToken, HttpRequestOptions requestOptions = null)
         {
-            if (retryStrategy == null)
+            if (request == null) throw new ArgumentNullException("request");
+            if (requestOptions == null)
             {
-                return await RetryStrategy.Execute(() => _client.SendAsync(request, completionOption, cancellationToken));
+                return RetryStrategy.Execute(() => _client.SendAsync(request, completionOption, cancellationToken));
             }
-            return await retryStrategy.Execute(() => _client.SendAsync(request, completionOption, cancellationToken));
+            if (requestOptions.AddHeadersFunc != null)
+            {
+                var headers = requestOptions.AddHeadersFunc.Invoke();
+                foreach (var header in headers)
+                {
+                    request.Headers.Add(header.Key, header.Value);
+                }
+            }
+            if (requestOptions.Timeout == null)
+            {
+                return RetryStrategy.Execute(() => _client.SendAsync(request, completionOption, cancellationToken));
+            }
+            if (requestOptions.RetryStrategy != null)
+            {
+                return requestOptions.RetryStrategy.Execute(() => SendAsyncWithTimeout(request, completionOption, requestOptions.Timeout.Value));
+            }
+            return RetryStrategy.Execute(() => SendAsyncWithTimeout(request, completionOption, requestOptions.Timeout.Value));
+        }
+
+        private Task<HttpResponseMessage> SendAsyncWithTimeout(HttpRequestMessage request, HttpCompletionOption completionOption, TimeSpan timeout)
+        {
+            var source = new CancellationTokenSource();
+            var task = _client.SendAsync(request, completionOption, source.Token);
+            source.CancelAfter(timeout);
+            return task;
         }
         #endregion
 
