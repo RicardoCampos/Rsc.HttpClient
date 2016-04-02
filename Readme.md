@@ -15,9 +15,11 @@ Developers are often an optimistic bunch (just ask any project manager about how
 * Fully asynchronous and threadsafe.
 * **IHttpClient** - abstraction around HttpClient to aid mocking and injection.
 * IHttpClient implementations all require a timeout to be set on creation - so you don't forget and use the terrible 100 second default!
-* Multiple retry strategies - no retry, simple, fixed back off, exponential back off, circuit breaker.
-* Retry strategies can be specified on a per request basis, or you can simply use the default for that client.
+* Multiple retry strategies - no retry, simple, fixed back off, exponential back off, circuit breaker. 
 * **HttpClientRegister** - used to register clients for services, aiding reuse.
+* Per-request timeouts
+* Per-request Http Header injection
+* Per-request retry strategy.
 
 
 ###Supported Frameworks
@@ -155,6 +157,35 @@ Here we know that we want a different timeout than the default for this single c
     }
 ```
 
+####Adding Headers per request
+
+Here we want to add a header- perhaps a call correlation ID or transaction ID, to the request. This is additive to the default headers.
+In practice, you might want to use a centralised factory class for adding headers according to your needs rather than specifying the Func locally like I have below.
+
+```csharp
+    var myService=register.GetClient("MyService");
+    if (myService.AllowRequest())
+    {
+        var guid = "C8B8D9009C1147D3B3BA16443660044F";
+        var options = new HttpRequestOptions
+        {
+            AddHeadersFunc = () =>
+            {
+                var header = new KeyValuePair<string, IEnumerable<string>>("x-correlation-id",
+                    new[] {guid});
+
+                return new[] {header};
+            }
+        };
+        var webPage=await myService.GetStringAsync("http://www.myservice.com",options);
+        //Do something with the web page
+    }
+    else
+    {
+        Debug.WriteLine("Oh no! The service isn't allowing requests so I won't even try to fetch the page!");
+    }
+```
+
 ####Using a circuit breaker
 
 Included is a default implementation for ICircuitBreaker. This is entirely configurable and you can always implement your own version if you wish.
@@ -185,4 +216,4 @@ Things to note:-
 The library isn't fully battle-tested so all bugs can be reported on the issue list. If you can, please follow up with a pull request fixing the bug!
 If you want a feature, again, please submit a pull request.
 
-On the roadmap is an extension (probably a different interface) to allow header injection per request. For example, you may want to inject a transaction ID or security token along with the request. I _suspect_ that this could be extended to change the timeout value per request too, which is possible but not simple/convenient to do with the existing HttpClient. At the same time, it would be possible to set a timeout per request as well.
+I'd also prefer to spin up a quick Http server for the tests rather than rely on an external provider- so you can run the tests more reliably (for example with no internet connectivity).
