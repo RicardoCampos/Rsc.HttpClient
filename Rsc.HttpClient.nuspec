@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
+    <metadata>
+        <id>Rsc.HttpClient</id>
+        <version>0.0.3</version>
+        <title>Rsc.HttpClient</title>
+		<licenseUrl>http://www.apache.org/licenses/LICENSE-2.0</licenseUrl>
+		<projectUrl>https://github.com/RicardoCampos/Rsc.HttpClient</projectUrl>
+        <authors>Ricardo Campos</authors>
+        <owners>Ricardo Campos</owners>
+        <requireLicenseAcceptance>false</requireLicenseAcceptance>
+        <description>A library that provides an IHttpClient abstraction as well as retry strategies, circuit breaker and other "Good practices" for using HttpClient.</description>
+		<tags>HttpClient IHttpClient CircuitBreaker</tags>
+    </metadata>
+    <files>
+		<file src="Rsc.HttpClient\bin\Release\net45\Rsc.HttpClient.dll" target="lib\net45\Rsc.HttpClient.dll" />
+        <file src="Rsc.HttpClient\bin\Release\net45\Rsc.HttpClient.pdb" target="lib\net45\Rsc.HttpClient.pdb" />
+        <file src="Rsc.HttpClient\bin\Release\net451\Rsc.HttpClient.dll" target="lib\net451\Rsc.HttpClient.dll" />
+        <file src="Rsc.HttpClient\bin\Release\net451\Rsc.HttpClient.pdb" target="lib\net451\Rsc.HttpClient.pdb" />
+        <file src="Rsc.HttpClient\bin\Release\net452\Rsc.HttpClient.dll" target="lib\net452\Rsc.HttpClient.dll" />
+        <file src="Rsc.HttpClient\bin\Release\net452\Rsc.HttpClient.pdb" target="lib\net452\Rsc.HttpClient.pdb" />
+		<file src="Rsc.HttpClient\bin\Release\net461\Rsc.HttpClient.dll" target="lib\net461\Rsc.HttpClient.dll" />
+        <file src="Rsc.HttpClient\bin\Release\net461\Rsc.HttpClient.pdb" target="lib\net461\Rsc.HttpClient.pdb" />
+    </files>
+</package>

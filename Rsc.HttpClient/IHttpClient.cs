@@ -21,6 +21,7 @@ using System.Net.Http.Headers;
 using System.Threading;
 using System.Threading.Tasks;
 using Rsc.HttpClient.Retry;
+using Rsc.HttpClient.Util;
 
 namespace Rsc.HttpClient
 {

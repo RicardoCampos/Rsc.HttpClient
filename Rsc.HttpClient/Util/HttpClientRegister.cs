@@ -17,7 +17,7 @@
 using System;
 using System.Collections.Concurrent;
 
-namespace Rsc.HttpClient
+namespace Rsc.HttpClient.Util
 {
     /// <summary>
     /// A threadsafe register for your http clients.

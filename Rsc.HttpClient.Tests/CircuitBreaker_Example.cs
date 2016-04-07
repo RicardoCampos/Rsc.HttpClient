@@ -62,9 +62,12 @@ namespace Rsc.HttpClient.Tests
         [Test]
         public async Task Make_A_Request()
         {
-            if (_googleHttpClient.AllowRequest())
+            var timeService = new TimeService();
+            var googleCircuitBreaker = new Retry.CircuitBreaker(timeService);
+            var googleHttpClient = new CircuitBreakerClient(TimeSpan.FromSeconds(1), googleCircuitBreaker);
+            if (googleHttpClient.AllowRequest())
             {
-                var something = await _googleHttpClient.GetStringAsync("http://www.google.com", new HttpRequestOptions {Timeout = TimeSpan.FromMinutes(2)});
+                var something = await googleHttpClient.GetStringAsync("http://www.google.com", new HttpRequestOptions {Timeout = TimeSpan.FromMinutes(2)});
                 Assert.IsNotEmpty(something);
             }
         }

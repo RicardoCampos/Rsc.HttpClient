@@ -327,14 +327,7 @@ namespace Rsc.HttpClient
             {
                 return RetryStrategy.Execute(() => _client.SendAsync(request, completionOption, cancellationToken));
             }
-            if (requestOptions.AddHeadersFunc != null)
-            {
-                var headers = requestOptions.AddHeadersFunc.Invoke();
-                foreach (var header in headers)
-                {
-                    request.Headers.Add(header.Key, header.Value);
-                }
-            }
+            request=AddHeaders(request,requestOptions);
             if (requestOptions.Timeout == null)
             {
                 return RetryStrategy.Execute(() => _client.SendAsync(request, completionOption, cancellationToken));
@@ -344,6 +337,19 @@ namespace Rsc.HttpClient
                 return requestOptions.RetryStrategy.Execute(() => SendAsyncWithTimeout(request, completionOption, requestOptions.Timeout.Value));
             }
             return RetryStrategy.Execute(() => SendAsyncWithTimeout(request, completionOption, requestOptions.Timeout.Value));
+        }
+
+        private static HttpRequestMessage AddHeaders(HttpRequestMessage request, HttpRequestOptions requestOptions)
+        {
+            if (requestOptions.AddHeadersFunc != null)
+            {
+                var headers = requestOptions.AddHeadersFunc.Invoke();
+                foreach (var header in headers)
+                {
+                    request.Headers.Add(header.Key, header.Values);
+                }
+            }
+            return request;
         }
 
         private Task<HttpResponseMessage> SendAsyncWithTimeout(HttpRequestMessage request, HttpCompletionOption completionOption, TimeSpan timeout)

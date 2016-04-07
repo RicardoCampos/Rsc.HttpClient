@@ -18,28 +18,57 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using NUnit.Framework;
+using Rsc.HttpClient.Util;
 
 namespace Rsc.HttpClient.Tests
 {
     class Adding_Headers_Example
     {
+        const string GUID = "C8B8D9009C1147D3B3BA16443660044F";
+
         [Test]
         public async Task Add_Headers()
         {
-            var guid = "C8B8D9009C1147D3B3BA16443660044F";
             var client=new NoRetryClient(TimeSpan.FromSeconds(30));
             var options = new HttpRequestOptions
             {
-                AddHeadersFunc = () =>
-                {
-                    var header = new KeyValuePair<string, IEnumerable<string>>("x-correlation-id",
-                        new[] {guid});
-
-                    return new[] {header};
-                }
+                AddHeadersFunc = () => new[] {new Header("x-correlation-id",new[] { GUID }) }
             };
             var result = await client.GetStringAsync("http://www.google.com",options);
             Assert.IsNotNullOrEmpty(result);
+        }
+
+        [Test]
+        public async Task Add_Headers_Using_Factory()
+        {           
+            var client = new NoRetryClient(TimeSpan.FromSeconds(30));
+            var options = new HttpRequestOptions
+            {
+                AddHeadersFunc = () => CorrelationHeaderFactory.Create(GUID)
+            };
+            var result = await client.GetStringAsync("http://www.google.com", options);
+            Assert.IsNotNullOrEmpty(result);
+        }
+
+        /// <summary>
+        /// This could just as easily be from an interface and injected in.
+        /// </summary>
+        private static class CorrelationHeaderFactory
+        {
+            private const string Key = "x-correlation-id";
+            public static IEnumerable<Header> Create(string value)
+            {
+                if (string.IsNullOrWhiteSpace(value))
+                {
+                    return CreateHeader(Guid.NewGuid().ToString());
+                }
+                return CreateHeader(value);
+            }
+
+            private static IEnumerable<Header> CreateHeader(string value)
+            {
+                return new[] {new Header(Key, new[] {value})};
+            }
         }
     }
 }

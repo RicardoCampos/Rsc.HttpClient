@@ -50,14 +50,24 @@
     <OutputPath>bin\Release\net451\</OutputPath>
     <TargetFrameworkVersion>v4.5.1</TargetFrameworkVersion>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release 4.5.2|AnyCPU'">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <OutputPath>bin\Release\net452\</OutputPath>
+    <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
+  </PropertyGroup>
   <ItemGroup>
     <Compile Include="CircuitBreakerClient.cs" />
     <Compile Include="ExponentialBackoffRetryClient.cs" />
     <Compile Include="FixedBackoffRetryClient.cs" />
-    <Compile Include="HttpClientRegister.cs" />
-    <Compile Include="HttpRequestOptions.cs" />
+    <Compile Include="Util\Header.cs" />
+    <Compile Include="Util\HttpClientRegister.cs" />
+    <Compile Include="Util\HttpRequestOptions.cs" />
     <Compile Include="Util\HttpUtilities.cs" />
-    <Compile Include="IHttpClientRegister.cs" />
+    <Compile Include="Util\IHttpClientRegister.cs" />
     <Compile Include="NoRetryClient.cs" />
     <Compile Include="RetryClient.cs" />
     <Compile Include="Retry\AlwaysAllowsRequestsBase.cs" />

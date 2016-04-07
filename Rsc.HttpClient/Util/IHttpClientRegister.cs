@@ -16,7 +16,7 @@
 
 using System;
 
-namespace Rsc.HttpClient
+namespace Rsc.HttpClient.Util
 {
     /// <summary>
     /// Used to register clients.

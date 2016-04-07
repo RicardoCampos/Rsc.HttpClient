@@ -169,21 +169,59 @@ In practice, you might want to use a centralised factory class for adding header
         var guid = "C8B8D9009C1147D3B3BA16443660044F";
         var options = new HttpRequestOptions
         {
-            AddHeadersFunc = () =>
-            {
-                var header = new KeyValuePair<string, IEnumerable<string>>("x-correlation-id",
-                    new[] {guid});
-
-                return new[] {header};
-            }
+            AddHeadersFunc = () => new[] {new Header("x-correlation-id",new[] { guid }) }
         };
-        var webPage=await myService.GetStringAsync("http://www.myservice.com",options);
+        var result = await myService.GetStringAsync("http://www.google.com",options);
         //Do something with the web page
     }
     else
     {
         Debug.WriteLine("Oh no! The service isn't allowing requests so I won't even try to fetch the page!");
     }
+```
+
+You could also use a factory class like so:-
+
+```csharp
+    public async Task Add_Headers_Using_Factory()
+    {
+        var myService=register.GetClient("MyService");
+        if (myService.AllowRequest())           
+        {
+            var options = new HttpRequestOptions
+            {
+                AddHeadersFunc = () => CorrelationHeaderFactory.Create(null)
+            };
+            var result = await client.GetStringAsync("http://www.google.com", options);
+            //Do something with the web page
+        }
+        else
+        {
+            Debug.WriteLine("Oh no! The service isn't allowing requests so I won't even try to fetch the page!");
+        }
+    }
+
+    /// <remarks>
+    /// This could just as easily be from an interface and injected in.
+    /// </remarks>
+    private static class CorrelationHeaderFactory
+    {
+        private const string Key = "x-correlation-id";
+        public static IEnumerable<Header> Create(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return CreateHeader(Guid.NewGuid().ToString());
+            }
+            return CreateHeader(value);
+        }
+
+        private static IEnumerable<Header> CreateHeader(string value)
+        {
+            return new[] {new Header(Key, new[] {value})};
+        }
+    }
+
 ```
 
 ####Using a circuit breaker

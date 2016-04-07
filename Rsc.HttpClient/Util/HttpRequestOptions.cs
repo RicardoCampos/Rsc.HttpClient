@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using Rsc.HttpClient.Retry;
 
-namespace Rsc.HttpClient
+namespace Rsc.HttpClient.Util
 {
     /// <summary>
     /// Specifies options that override class defaults for a single request.
@@ -23,7 +23,6 @@ namespace Rsc.HttpClient
         /// A function returning a collections of headers to be added to the request.
         /// A header is represented by a name and a collection of string values for that name.
         /// </summary>
-        public Func<IEnumerable<KeyValuePair<string,IEnumerable<string>>>> AddHeadersFunc { get; set; } 
+        public Func<IEnumerable<Header>> AddHeadersFunc { get; set; } 
     }
-
 }

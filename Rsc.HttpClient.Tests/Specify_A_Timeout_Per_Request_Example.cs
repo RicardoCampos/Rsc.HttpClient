@@ -17,6 +17,7 @@
 using System;
 using System.Threading.Tasks;
 using NUnit.Framework;
+using Rsc.HttpClient.Util;
 
 namespace Rsc.HttpClient.Tests
 {
