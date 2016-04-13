@@ -190,7 +190,7 @@ You could also use a factory class like so:-
         {
             var options = new HttpRequestOptions
             {
-                AddHeadersFunc = () => CorrelationHeaderFactory.Create(null)
+                AddHeadersFunc = () => CorrelationHeaderFactory.Create(null);
             };
             var result = await client.GetStringAsync("http://www.google.com", options);
             //Do something with the web page
