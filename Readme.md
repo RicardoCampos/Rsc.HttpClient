@@ -1,4 +1,4 @@
-#Rsc.HttpClient - A wrapper library to extend normal HttpClient functionality.
+# Rsc.HttpClient - A wrapper library to extend normal HttpClient functionality.
 
 ## Introduction
 In a microservice world, we are relying on using external Http services more and more. There are a number of things that make this more difficult than it should be - for example there is no interface for HttpClient which can make unit testing... _testing_.
@@ -11,7 +11,7 @@ Typically us .Net developers run and hide at the singleton pattern, but quite of
 
 Developers are often an optimistic bunch (just ask any project manager about how well we estimate the time taken for a feature...) and we often act as if all external dependencies are always working in a timely manner. As such, we tend to not think about what if something fails? Or if it takes a long time? As such the classes I have created *have* to have a timeout specified- you need to think about how long you want to wait for a service to respond. By exposing the concept of retries - even if you choose not to use them- it is explicitly stating that at some point the external service _will_ fail. To paraphrase Scott Guthrie; I want developers to fall into the pit of success.
 
-###Features:
+### Features:
 * Fully asynchronous and threadsafe.
 * **IHttpClient** - abstraction around HttpClient to aid mocking and injection.
 * IHttpClient implementations all require a timeout to be set on creation - so you don't forget and use the terrible 100 second default!
@@ -22,13 +22,13 @@ Developers are often an optimistic bunch (just ask any project manager about how
 * Per-request retry strategy.
 
 
-###Supported Frameworks
+### Supported Frameworks
 .Net 4.5, 4.5.1, 4.6.1
 Support for .net core (or whatever it will be called) will be added once it reaches it's first full release (too many things change between releases currently).
 
 ## A quick tour
 
-####Retry strategies and circuits
+#### Retry strategies and circuits
 
 Retry strategies will use some basic logic to determine whether they should retry, and when. This decision is made on a *per-request* basis.
 
@@ -36,7 +36,7 @@ In contrast, a circuit breaker keeps track of all requests made through it. If t
 
 Circuit breakers will allow an occasional request through- to test the water and see if the service is back up. If it is, then the circuit breaker resets and allows further requests to come through. Obviously, the circuit breaker object is only useful if configures as a singleton for your application! 
 
-####Available clients
+#### Available clients
 
 The following clients with default retry strategies have been created for you to use:
 * **NoRetryClient** - never retries, simple wrapper around HttpClient that implements IHttpClient and can therefore be easily mocked. It is also used as the base class for other implementations.
@@ -45,18 +45,18 @@ The following clients with default retry strategies have been created for you to
 * **ExponentialBackoffRetryClient** - as RetryClient but waits _x_ milliseconds for the second attempt, then _2x_, then _4x_ and so on.
 * **CircuitBreakerClient** - a client that uses an ICircuitBreaker to determine whether it should attempt to make a request.
 
-####Extensibility
+#### Extensibility
 
 All of the components are referenced by interface, so you should be able to extend by implementing your own versions of those interfaces. If these interfaces aren't sufficient, please consider submitting a pull request.
 
-####Supporting structures
+#### Supporting structures
 
 * **CircuitBreaker** - a configurable, threadsafe implementation of the circuit breaker pattern.
 * **HttpClientRegister** - a threadsafe service register, promoting reuse of the client objects.
 * **IRetryStrategy<T>** - an interface for you to implement your own strategies. You could be specific with certain Exception types, add in reporting and so on.
 * **HttpRequestOptions** - A wrapper class so you can supply additional options to your request- a function to add headers, an overriding retry strategy or a timeout.
 
-###Rules of thumb
+### Rules of thumb
 
 Abide by these rules of thumb, and your journey will be a happy one...
 
@@ -67,12 +67,12 @@ Abide by these rules of thumb, and your journey will be a happy one...
 * If you use a circuit breaker, use *one* per service, and use that for the *whole application*. If you have a new circuit breaker for each web request/thread/_per instance_ you are missing out on the main benefit of a circuit breaker.
 * Always check to see if AllowRequest() is true (see below) before attempting a call.
 
-##Shut up and show us the code!
+## Shut up and show us the code!
 
 I have included some usage examples in the test library, but for those that just want to use the nuget package and don't want to pull the source code down...
 
 
-####Basic use - Creating a registry
+#### Basic use - Creating a registry
 
 As previously mentioned, I have not forced you down the route of using any particular IOC container. Use the HttpClientRegister to register each service, and then use this as a kind of factory to get a client and use it.
 
@@ -93,7 +93,7 @@ As previously mentioned, I have not forced you down the route of using any parti
     var duckDuckGo=register.GetClient("DuckDuckGo");
 ```
 
-####Using a client
+#### Using a client
 
 Below is an example of getting a client from the register, checking to see if the service is allowing requests, and the using one of the HttpClient methods to get a web page as a string.
 
@@ -112,7 +112,7 @@ Below is an example of getting a client from the register, checking to see if th
     }
 ```
 
-####Specifying a retry stategy per request
+#### Specifying a retry stategy per request
 
 Here we know that we want a different retry strategy than the default for this single call - perhaps if it doesn't work first time we know to give up. To do this, we simply pass in the strategy to use for this one call.
 
@@ -135,7 +135,7 @@ Here we know that we want a different retry strategy than the default for this s
 ```
 
 
-####Specifying a timeout per request
+#### Specifying a timeout per request
 
 Here we know that we want a different timeout than the default for this single call. Typically each sercice would have an SLA, but you might expect certain calls to take a lot longer.
 
@@ -157,7 +157,7 @@ Here we know that we want a different timeout than the default for this single c
     }
 ```
 
-####Adding Headers per request
+#### Adding Headers per request
 
 Here we want to add a header- perhaps a call correlation ID or transaction ID, to the request. This is additive to the default headers.
 In practice, you might want to use a centralised factory class for adding headers according to your needs rather than specifying the Func locally like I have below.
@@ -224,7 +224,7 @@ You could also use a factory class like so:-
 
 ```
 
-####Using a circuit breaker
+#### Using a circuit breaker
 
 Included is a default implementation for ICircuitBreaker. This is entirely configurable and you can always implement your own version if you wish.
 The main properties you would want to configure are as follows:-
@@ -249,7 +249,7 @@ Things to note:-
 
 
 
-##Contributing
+## Contributing
 
 The library isn't fully battle-tested so all bugs can be reported on the issue list. If you can, please follow up with a pull request fixing the bug!
 If you want a feature, again, please submit a pull request.
